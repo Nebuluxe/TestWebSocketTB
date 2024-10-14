@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS WebSocket Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 2rem;
+            color: #0073e6;
+        }
+
+        #button-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            background-color: #0073e6;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #005bb5;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            background-color: #003f7f;
+            transform: translateY(0);
+        }
+
+        #output {
+            width: 90%;
+            max-width: 800px;
+            height: 300px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <h1>POS WebSocket Client</h1>
+
+    <!-- Contenedor de botones para interactuar con las funcionalidades del POS -->
+    <div id="button-container">
+        <button id="listPorts">Listar Puertos</button>
+        <button id="openPort">Abrir Puerto</button>
+        <button id="poll">Verificar Conexión POS</button>
+        <button id="loadKeys">Cargar Llaves</button>
+        <button id="closePOS">Cerrar POS</button>
+        <button id="sale">Realizar Venta</button>
+        <button id="totals">Obtener Totales</button>
+        <button id="lastSale">Última Venta</button>
+        <button id="generateReceipt">Generar Recibo</button>
+        <button id="refund">Reembolso</button>
+        <button id="details">Detalles de Ventas</button>
+        <button id="multiCodeSale">Venta Multicódigo</button>
+        <button id="multiCodeLastSale">Última Venta Multicódigo</button>
+        <button id="setNormalMode">Pos Modo Normal</button>
+    </div>
+
+    <div id="output"></div> <!-- Aquí se mostrarán las respuestas del servidor -->
+
+    <footer>Desarrollado para probar funcionalidades WebSocket del POS</footer>
+
+    <script>
+        // Crear conexión WebSocket
+        const socket = new WebSocket("ws://localhost:5000");
+
+        // Manejar apertura de WebSocket
+        socket.onopen = function (e) {
+            console.log("Conectado al WebSocket POS.");
+            document.getElementById("output").innerText += "Conectado al WebSocket POS.\n";
+        };
+
+        // Manejar mensajes recibidos desde el servidor
+        socket.onmessage = function (event) {
+            // Mostrar la respuesta recibida del servidor en el elemento de salida
+            document.getElementById("output").innerText += event.data + "\n";
+        };
+
+        // Manejar errores del WebSocket
+        socket.onerror = function (error) {
+            console.error("WebSocket Error: ", error);
+            document.getElementById("output").innerText += "WebSocket Error: " + error.message + "\n";
+        };
+
+        // Funciones para cada acción del POS
+        document.getElementById("listPorts").onclick = function () {
+            socket.send("LIST_PORTS");
+        };
+
+        document.getElementById("openPort").onclick = function () {
+            const portName = prompt("Ingrese el nombre del puerto (por ejemplo, COM1):");
+            if (portName) {
+                socket.send(`OPEN_PORT:${portName}`);
+            }
+        };
+
+        document.getElementById("poll").onclick = function () {
+            socket.send("POLL");
+        };
+
+        document.getElementById("setNormalMode").onclick = function () {
+            socket.send("SET_NORMAL_MODE");
+        };
+
+        document.getElementById("loadKeys").onclick = function () {
+            socket.send("LOAD_KEYS");
+        };
+
+        document.getElementById("closePOS").onclick = function () {
+            socket.send("CLOSE_POS");
+        };
+
+        document.getElementById("sale").onclick = function () {
+            const amount = prompt("Ingrese el monto de la venta (por ejemplo, 10000):");
+            const ticket = prompt("Ingrese el ticket de la venta (por ejemplo, Ticket123):");
+            if (amount && ticket) {
+                socket.send(`SALE:${amount}:${ticket}`);
+            }
+        };
+
+        document.getElementById("totals").onclick = function () {
+            socket.send("GET_TOTALS");
+        };
+
+        document.getElementById("lastSale").onclick = function () {
+            socket.send("LAST_SALE");
+        };
+
+        document.getElementById("generateReceipt").onclick = function () {
+            const isClientCopy = confirm("¿Generar recibo para el cliente?");
+            socket.send(`GENERATE_RECEIPT:${isClientCopy ? 'CLIENT_COPY' : 'MERCHANT_COPY'}`);
+        };
+
+        document.getElementById("refund").onclick = function () {
+            const operationId = prompt("Ingrese el ID de la operación para el reembolso:");
+            if (operationId) {
+                socket.send(`REFUND:${operationId}`);
+            }
+        };
+
+        document.getElementById("details").onclick = function () {
+            const print = confirm("¿Desea imprimir los detalles?");
+            socket.send(`DETAILS:${print ? 'PRINT' : ''}`);
+        };
+
+        document.getElementById("multiCodeSale").onclick = function () {
+            const amount = prompt("Ingrese el monto de la venta multicódigo (por ejemplo, 10000):");
+            const ticket = prompt("Ingrese el ticket de la venta multicódigo:");
+            const commerceCode = prompt("Ingrese el código de comercio multicódigo (por ejemplo, 1234567890):");
+            if (amount && ticket && commerceCode) {
+                socket.send(`MULTICODE_SALE:${amount}:${ticket}:${commerceCode}`);
+            }
+        };
+
+        document.getElementById("multiCodeLastSale").onclick = function () {
+            socket.send("MULTICODE_LAST_SALE");
+        };
+    </script>
+</body>
+</html>
