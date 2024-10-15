@@ -100,8 +100,8 @@
 
     <script>
         // Crear conexión WebSocket
-        const socket = new WebSocket("ws://localhost:5000");
-
+        const socket = new WebSocket('wss://localhost:5000/ws');
+        
         // Manejar apertura de WebSocket
         socket.onopen = function (e) {
             console.log("Conectado al WebSocket POS.");
